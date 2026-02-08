@@ -1,0 +1,127 @@
+import { test, expect, describe } from "bun:test";
+import type { Plugin, ResolvedConfig } from "vite";
+import solidGrab from "../src/vite.js";
+
+/** Helper: create the plugin and simulate Vite's configResolved hook */
+function createPlugin(
+  options: Parameters<typeof solidGrab>[0] = {},
+  mode: "development" | "production" = "development"
+): Plugin {
+  const plugin = solidGrab(options);
+
+  // Simulate Vite calling configResolved
+  const fakeConfig = {
+    root: "/project",
+    command: mode === "development" ? "serve" : "build",
+    mode,
+  } as ResolvedConfig;
+
+  (plugin as any).configResolved(fakeConfig);
+  return plugin;
+}
+
+describe("plugin metadata", () => {
+  test("has correct name", () => {
+    const plugin = solidGrab();
+    expect(plugin.name).toBe("solid-grab");
+  });
+
+  test("enforces pre", () => {
+    const plugin = solidGrab();
+    expect(plugin.enforce).toBe("pre");
+  });
+});
+
+describe("transform", () => {
+  test("injects data-solid-source into JSX elements", () => {
+    const plugin = createPlugin();
+    const code = `function App() {\n  return <div>hello</div>;\n}`;
+    const result = (plugin as any).transform(code, "/project/src/App.tsx");
+
+    expect(result).not.toBeNull();
+    expect(result.code).toContain('data-solid-source="src/App.tsx:');
+  });
+
+  test("injects data-solid-component for PascalCase tags", () => {
+    const plugin = createPlugin();
+    const code = `function App() {\n  return <MyComponent />;\n}`;
+    const result = (plugin as any).transform(code, "/project/src/App.tsx");
+
+    expect(result).not.toBeNull();
+    expect(result.code).toContain('data-solid-component="MyComponent"');
+  });
+
+  test("does not inject data-solid-component for lowercase tags", () => {
+    const plugin = createPlugin();
+    const code = `function App() {\n  return <div>hello</div>;\n}`;
+    const result = (plugin as any).transform(code, "/project/src/App.tsx");
+
+    expect(result).not.toBeNull();
+    expect(result.code).not.toContain("data-solid-component");
+  });
+
+  test("skips non-JSX files", () => {
+    const plugin = createPlugin();
+    const result = (plugin as any).transform("const x = 1;", "/project/src/utils.ts");
+    expect(result).toBeNull();
+  });
+
+  test("skips node_modules", () => {
+    const plugin = createPlugin();
+    const code = `function App() {\n  return <div>hello</div>;\n}`;
+    const result = (plugin as any).transform(code, "/project/node_modules/foo/index.tsx");
+    expect(result).toBeNull();
+  });
+
+  test("skips in production mode", () => {
+    const plugin = createPlugin({}, "production");
+    const code = `function App() {\n  return <div>hello</div>;\n}`;
+    const result = (plugin as any).transform(code, "/project/src/App.tsx");
+    expect(result).toBeNull();
+  });
+
+  test("respects jsxLocation: false", () => {
+    const plugin = createPlugin({ jsxLocation: false });
+    const code = `function App() {\n  return <div>hello</div>;\n}`;
+    const result = (plugin as any).transform(code, "/project/src/App.tsx");
+    // No source attr, no component attr for lowercase tag — should return null (no changes)
+    expect(result).toBeNull();
+  });
+
+  test("respects componentLocation: false", () => {
+    const plugin = createPlugin({ componentLocation: false });
+    const code = `function App() {\n  return <MyComponent />;\n}`;
+    const result = (plugin as any).transform(code, "/project/src/App.tsx");
+
+    expect(result).not.toBeNull();
+    expect(result.code).toContain("data-solid-source");
+    expect(result.code).not.toContain("data-solid-component");
+  });
+});
+
+describe("transformIndexHtml", () => {
+  test("injects runtime script in dev mode", () => {
+    const plugin = createPlugin();
+    const html = "<html><head></head><body></body></html>";
+    const result = (plugin as any).transformIndexHtml(html);
+
+    expect(result).toContain('import("solid-grab")');
+    expect(result).toContain("</head>");
+  });
+
+  test("does not inject in production mode", () => {
+    const plugin = createPlugin({}, "production");
+    const html = "<html><head></head><body></body></html>";
+    const result = (plugin as any).transformIndexHtml(html);
+
+    expect(result).not.toContain("solid-grab");
+  });
+
+  test("respects autoImport: false", () => {
+    const plugin = createPlugin({ autoImport: false });
+    const html = "<html><head></head><body></body></html>";
+    const result = (plugin as any).transformIndexHtml(html);
+
+    expect(result).not.toContain("solid-grab");
+  });
+});

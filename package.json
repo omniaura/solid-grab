@@ -1,12 +1,67 @@
 {
   "name": "solid-grab",
-  "module": "index.ts",
+  "version": "0.1.0",
+  "description": "Select context for coding agents directly from your SolidJS app",
   "type": "module",
-  "private": true,
-  "devDependencies": {
-    "@types/bun": "latest"
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./vite": {
+      "types": "./dist/vite.d.ts",
+      "import": "./dist/vite.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "bun test",
+    "prepublishOnly": "bun run build"
+  },
+  "keywords": [
+    "solid",
+    "solidjs",
+    "devtools",
+    "grab",
+    "agent",
+    "cursor",
+    "claude-code",
+    "context"
+  ],
+  "license": "MIT",
+  "author": "omniaura",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/omniaura/solid-grab.git"
+  },
+  "homepage": "https://github.com/omniaura/solid-grab#readme",
+  "bugs": {
+    "url": "https://github.com/omniaura/solid-grab/issues"
   },
   "peerDependencies": {
-    "typescript": "^5"
+    "solid-js": ">=1.7.0",
+    "vite": ">=4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "vite": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@happy-dom/global-registrator": "^16.0.0",
+    "@types/bun": "latest",
+    "solid-js": "^1.8.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0",
+    "vite": "^5.0.0"
   }
 }
