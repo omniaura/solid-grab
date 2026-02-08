@@ -1,19 +1,23 @@
-name: Publish to npm
+name: Release
 
 on:
-  release:
-    types: [published]
+  push:
+    branches: [main]
 
 jobs:
-  publish:
+  release:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: read
-      id-token: write # Required for npm provenance
+      contents: write # Create GitHub releases + push version commits
+      issues: write # Comment on issues referenced in commits
+      pull-requests: write # Comment on PRs referenced in commits
+      id-token: write # npm provenance
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history for semantic-release to analyze commits
 
       - uses: oven-sh/setup-bun@v2
 
@@ -23,13 +27,14 @@ jobs:
 
       - run: bun run build
 
-      # bun publish doesn't support --provenance yet (oven-sh/bun#15601)
-      # so we use npm for the publish step only
+      # semantic-release uses npm under the hood for publishing,
+      # so we need Node for the publish step + provenance
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
 
-      - run: npm publish --provenance --access public
+      - run: bunx semantic-release
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
