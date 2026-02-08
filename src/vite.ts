@@ -32,25 +32,61 @@ import type { SolidGrabPluginOptions } from "./types.js";
 // We inject `data-solid-source="file:line:col"` right after the tag name.
 
 /**
- * Matches the opening of a JSX element:
- *   <div  |  <MyComponent  |  <ns:tag
- * Does NOT match:
- *   </div  |  <>  |  </ |  <=  |  <<
- *   Accessor<boolean>  |  createContext<Type>  (TypeScript generics)
- *
- * The negative lookbehind (?<!\w) ensures the `<` is not preceded by a
- * word character, which distinguishes JSX tags from TypeScript generics.
- *
- * Capture group 1 = everything before we inject the attribute
- * We track line numbers ourselves for accuracy.
+ * Candidate regex for JSX opening tags. The negative lookbehind (?<!\w)
+ * filters TypeScript generics (where `<` directly follows an identifier).
+ * Comparison operators (where `<` is preceded by whitespace) are filtered
+ * by the isLikelyJsx() context check in the match loop.
  */
 const JSX_OPEN_TAG_RE =
   /(?<!\w)(<\s*)([A-Z_a-z][\w.:-]*)(\s|\/?>)/g;
 
-/**
- * Matches component-style names: PascalCase or contains a dot (Foo.Bar).
- */
+/** Matches component-style names: PascalCase or contains a dot (Foo.Bar). */
 const COMPONENT_NAME_RE = /^[A-Z]|[.]/;
+
+/** Keywords that can directly precede a JSX expression. */
+const JSX_PRECEDING_KEYWORDS = new Set([
+  "return", "yield", "case", "default", "else",
+]);
+
+/**
+ * Walks backwards from `<` (skipping whitespace) to determine whether
+ * it's a JSX opening tag or a less-than comparison.
+ *
+ *   - After `)`, `]`, quotes  → comparison (end of expression)
+ *   - After `(`, `{`, `=`, etc. → JSX (start of expression)
+ *   - After a keyword like `return` → JSX
+ *   - After any other identifier → comparison
+ */
+function isLikelyJsx(code: string, ltIndex: number): boolean {
+  let i = ltIndex - 1;
+  while (i >= 0 && (code[i] === " " || code[i] === "\t" || code[i] === "\n" || code[i] === "\r")) {
+    i--;
+  }
+
+  if (i < 0) return true; // Start of file
+
+  const ch = code[i]!;
+
+  // Expression-ending tokens → comparison
+  if (ch === ")" || ch === "]" || ch === '"' || ch === "'" || ch === "`") {
+    return false;
+  }
+
+  // Operators/punctuation that introduce an expression → JSX
+  if ("({[,;:?=!>&|+-*/%^~".includes(ch)) {
+    return true;
+  }
+
+  // Word character → JSX only if it's a keyword like `return`
+  if (/\w/.test(ch)) {
+    const end = i + 1;
+    while (i >= 0 && /\w/.test(code[i]!)) i--;
+    const word = code.slice(i + 1, end);
+    return JSX_PRECEDING_KEYWORDS.has(word);
+  }
+
+  return true; // Conservative default
+}
 
 function transformJsx(
   code: string,
@@ -92,6 +128,12 @@ function transformJsx(
     const suffix = match[3]!; // space, `/>`, or `>`
 
     const offset = match.index;
+
+    // Skip comparisons like `x < y` — only inject into actual JSX
+    if (!isLikelyJsx(code, offset)) {
+      continue;
+    }
+
     const [line, col] = getLineCol(offset);
 
     const isComponent = COMPONENT_NAME_RE.test(tagName);

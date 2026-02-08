@@ -112,6 +112,82 @@ describe("transform", () => {
     expect(result.code).not.toContain("Accessor<boolean data-solid");
   });
 
+  test("does not inject into comparison operators", () => {
+    const plugin = createPlugin();
+    const code = [
+      `function foo() {`,
+      `  const x = count() < totalItems`,
+      `  if (a < b) {}`,
+      `  return userTier < minimumTier`,
+      `}`,
+    ].join("\n");
+    const result = (plugin as any).transform(code, "/project/src/foo.tsx");
+    expect(result).toBeNull();
+  });
+
+  test("does not inject into comparison after function call", () => {
+    const plugin = createPlugin();
+    const code = [
+      `function foo() {`,
+      `  return visiblePageCount() < totalPages`,
+      `}`,
+    ].join("\n");
+    const result = (plugin as any).transform(code, "/project/src/foo.tsx");
+    expect(result).toBeNull();
+  });
+
+  test("does not inject into comparison in conditional expression", () => {
+    const plugin = createPlugin();
+    const code = [
+      `if (`,
+      `  newIndex !== currentIndex() &&`,
+      `  newIndex >= 0 &&`,
+      `  newIndex < props.images.length`,
+      `) {}`,
+    ].join("\n");
+    const result = (plugin as any).transform(code, "/project/src/foo.tsx");
+    expect(result).toBeNull();
+  });
+
+  test("injects into JSX after return keyword", () => {
+    const plugin = createPlugin();
+    const code = `function App() {\n  return <div>hello</div>;\n}`;
+    const result = (plugin as any).transform(code, "/project/src/App.tsx");
+    expect(result).not.toBeNull();
+    expect(result.code).toContain("data-solid-source=");
+  });
+
+  test("injects into JSX after logical operators", () => {
+    const plugin = createPlugin();
+    const code = `const el = show() && <div>visible</div>;`;
+    const result = (plugin as any).transform(code, "/project/src/App.tsx");
+    expect(result).not.toBeNull();
+    expect(result.code).toContain("data-solid-source=");
+  });
+
+  test("injects into JSX in ternary expression", () => {
+    const plugin = createPlugin();
+    const code = `const el = cond ? <div>a</div> : <span>b</span>;`;
+    const result = (plugin as any).transform(code, "/project/src/App.tsx");
+    expect(result).not.toBeNull();
+    expect(result.code).toContain("data-solid-source=");
+  });
+
+  test("handles mixed comparisons and JSX in the same file", () => {
+    const plugin = createPlugin();
+    const code = [
+      `function App() {`,
+      `  const isSmall = count() < maxItems;`,
+      `  return <div>{isSmall ? <span>small</span> : <span>big</span>}</div>;`,
+      `}`,
+    ].join("\n");
+    const result = (plugin as any).transform(code, "/project/src/App.tsx");
+    expect(result).not.toBeNull();
+    expect(result.code).toContain("data-solid-source=");
+    // Comparison should be untouched
+    expect(result.code).toContain("count() < maxItems");
+  });
+
   test("respects jsxLocation: false", () => {
     const plugin = createPlugin({ jsxLocation: false });
     const code = `function App() {\n  return <div>hello</div>;\n}`;
