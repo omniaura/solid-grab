@@ -36,12 +36,16 @@ import type { SolidGrabPluginOptions } from "./types.js";
  *   <div  |  <MyComponent  |  <ns:tag
  * Does NOT match:
  *   </div  |  <>  |  </ |  <=  |  <<
+ *   Accessor<boolean>  |  createContext<Type>  (TypeScript generics)
+ *
+ * The negative lookbehind (?<!\w) ensures the `<` is not preceded by a
+ * word character, which distinguishes JSX tags from TypeScript generics.
  *
  * Capture group 1 = everything before we inject the attribute
  * We track line numbers ourselves for accuracy.
  */
 const JSX_OPEN_TAG_RE =
-  /(<\s*)([A-Z_a-z][\w.:-]*)(\s|\/?>)/g;
+  /(?<!\w)(<\s*)([A-Z_a-z][\w.:-]*)(\s|\/?>)/g;
 
 /**
  * Matches component-style names: PascalCase or contains a dot (Foo.Bar).

@@ -80,6 +80,38 @@ describe("transform", () => {
     expect(result).toBeNull();
   });
 
+  test("does not inject into TypeScript generics", () => {
+    const plugin = createPlugin();
+    const code = [
+      `const x: Accessor<boolean> = () => true;`,
+      `const ctx = createContext<ModalContextType | null>(null);`,
+      `const [store, setStore] = createStore<SubjectViewerStore>({});`,
+      `function useFoo(a: string, b: Accessor<boolean>) {}`,
+      `return useDittoQuery<typeof Schema, Response | null>({});`,
+    ].join("\n");
+    const result = (plugin as any).transform(code, "/project/src/hooks.tsx");
+
+    // No JSX in this code — should return null (no changes)
+    expect(result).toBeNull();
+  });
+
+  test("injects into JSX but not generics in the same file", () => {
+    const plugin = createPlugin();
+    const code = [
+      `function App() {`,
+      `  const x: Accessor<boolean> = () => true;`,
+      `  return <div>hello</div>;`,
+      `}`,
+    ].join("\n");
+    const result = (plugin as any).transform(code, "/project/src/App.tsx");
+
+    expect(result).not.toBeNull();
+    expect(result.code).toContain('data-solid-source=');
+    // The generic should be untouched
+    expect(result.code).toContain("Accessor<boolean>");
+    expect(result.code).not.toContain("Accessor<boolean data-solid");
+  });
+
   test("respects jsxLocation: false", () => {
     const plugin = createPlugin({ jsxLocation: false });
     const code = `function App() {\n  return <div>hello</div>;\n}`;
