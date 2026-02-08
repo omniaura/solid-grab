@@ -59,7 +59,7 @@
   "devDependencies": {
     "@happy-dom/global-registrator": "^16.0.0",
     "@types/bun": "latest",
-    "semantic-release": "^24.0.0",
+    "semantic-release": "25",
     "solid-js": "^1.8.0",
     "tsup": "^8.0.0",
     "typescript": "^5.4.0",
