@@ -27,12 +27,11 @@ jobs:
 
       - run: bun run build
 
-      # semantic-release uses npm under the hood for publishing,
-      # so we need Node for the publish step + provenance
+      # Node is needed for npm publish (semantic-release uses npm under the hood)
+      # Don't set registry-url — semantic-release handles its own .npmrc via NPM_TOKEN
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          registry-url: https://registry.npmjs.org
 
       - run: bunx semantic-release
         env:
