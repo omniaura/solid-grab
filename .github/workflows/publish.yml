@@ -28,12 +28,11 @@ jobs:
       - run: bun run build
 
       # Node is needed for npm publish (semantic-release uses npm under the hood)
-      # Don't set registry-url — semantic-release handles its own .npmrc via NPM_TOKEN
       - uses: actions/setup-node@v4
         with:
           node-version: 22
 
+      # Auth is handled via OIDC trusted publishing — no NPM_TOKEN needed
       - run: bunx semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
