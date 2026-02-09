@@ -18,8 +18,11 @@
  *   });
  */
 
-import type { Plugin, ResolvedConfig } from "vite";
+import type { Plugin, ResolvedConfig, ViteDevServer } from "vite";
 import type { SolidGrabPluginOptions } from "./types.js";
+
+const VIRTUAL_INIT = "virtual:solid-grab-init";
+const RESOLVED_VIRTUAL_INIT = "\0" + VIRTUAL_INIT;
 
 // ── Regex-based JSX transform ────────────────────────────────────────
 //
@@ -191,6 +194,17 @@ export default function solidGrab(
       isDev = config.command === "serve" || config.mode === "development";
     },
 
+    // Virtual module that imports the runtime — resolved by Vite's pipeline
+    resolveId(id) {
+      if (id === VIRTUAL_INIT) return RESOLVED_VIRTUAL_INIT;
+    },
+
+    load(id) {
+      if (id === RESOLVED_VIRTUAL_INIT) {
+        return `import "solid-grab";`;
+      }
+    },
+
     transform(code, id) {
       // Only transform in dev mode
       if (!isDev) return null;
@@ -217,17 +231,27 @@ export default function solidGrab(
       };
     },
 
-    // Auto-inject the runtime script in dev mode
-    transformIndexHtml(html) {
-      if (!autoImport) return html;
-      if (!isDev) return html;
+    // Serve the virtual init module through Vite's transform pipeline
+    configureServer(server: ViteDevServer) {
+      server.middlewares.use((req, _res, next) => {
+        // Rewrite the URL so Vite's built-in module serving handles it
+        if (req.url === "/@solid-grab/init") {
+          req.url = `/@id/${VIRTUAL_INIT}`;
+        }
+        next();
+      });
+    },
 
-      // Inject a module script that imports solid-grab
-      const script = `<script type="module">
-  import("solid-grab").catch(() => {});
-</script>`;
-
-      return html.replace("</head>", `${script}\n</head>`);
+    // Inject a <script src> that Vite's dev server will resolve
+    transformIndexHtml() {
+      if (!autoImport || !isDev) return;
+      return [
+        {
+          tag: "script",
+          attrs: { type: "module", src: "/@solid-grab/init" },
+          injectTo: "head" as const,
+        },
+      ];
     },
   };
 }
