@@ -135,6 +135,15 @@ function onMouseDown(e: MouseEvent) {
   overlay.clearHighlight();
 }
 
+function onClick(e: MouseEvent) {
+  if (!keyHeld) return;
+
+  // Block clicks on the underlying page while grabbing
+  e.preventDefault();
+  e.stopPropagation();
+  e.stopImmediatePropagation();
+}
+
 // ── Clipboard ────────────────────────────────────────────────────────
 
 async function copyToClipboard(text: string) {
@@ -200,6 +209,7 @@ function bootstrap() {
   document.addEventListener("keyup", onKeyUp, true);
   document.addEventListener("mousemove", onMouseMove, true);
   document.addEventListener("mousedown", onMouseDown, true);
+  document.addEventListener("click", onClick, true);
   window.addEventListener("blur", onBlur);
 
   // Connect agent bridge if URL provided
@@ -226,6 +236,7 @@ export function destroySolidGrab() {
   document.removeEventListener("keyup", onKeyUp, true);
   document.removeEventListener("mousemove", onMouseMove, true);
   document.removeEventListener("mousedown", onMouseDown, true);
+  document.removeEventListener("click", onClick, true);
   window.removeEventListener("blur", onBlur);
 
   overlay.unmount();
@@ -235,10 +246,13 @@ export function destroySolidGrab() {
 }
 
 // ── Auto-init on import ──────────────────────────────────────────────
-// When imported as a side-effect (`import "solid-grab"`), auto-initialize
-// with defaults. Users who want custom options should use initSolidGrab().
+// Deferred to a microtask so that named importers can call
+// initSolidGrab({ key: ... }) synchronously before the default init.
+// This lets the Vite plugin pass options through the virtual module.
 
-initSolidGrab();
+queueMicrotask(() => {
+  if (!initialized) initSolidGrab();
+});
 
 // ── Expose global API for extensibility (like React Grab) ────────────
 
