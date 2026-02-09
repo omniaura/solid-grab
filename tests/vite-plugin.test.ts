@@ -208,28 +208,29 @@ describe("transform", () => {
 });
 
 describe("transformIndexHtml", () => {
-  test("injects runtime script in dev mode", () => {
+  test("returns tag descriptors in dev mode", () => {
     const plugin = createPlugin();
-    const html = "<html><head></head><body></body></html>";
-    const result = (plugin as any).transformIndexHtml(html);
+    const result = (plugin as any).transformIndexHtml();
 
-    expect(result).toContain('import("solid-grab")');
-    expect(result).toContain("</head>");
+    expect(result).toBeArray();
+    expect(result).toHaveLength(1);
+    expect(result[0].tag).toBe("script");
+    expect(result[0].attrs.type).toBe("module");
+    expect(result[0].attrs.src).toBe("/@solid-grab/init");
+    expect(result[0].injectTo).toBe("head");
   });
 
-  test("does not inject in production mode", () => {
+  test("returns undefined in production mode", () => {
     const plugin = createPlugin({}, "production");
-    const html = "<html><head></head><body></body></html>";
-    const result = (plugin as any).transformIndexHtml(html);
+    const result = (plugin as any).transformIndexHtml();
 
-    expect(result).not.toContain("solid-grab");
+    expect(result).toBeUndefined();
   });
 
-  test("respects autoImport: false", () => {
+  test("returns undefined when autoImport is false", () => {
     const plugin = createPlugin({ autoImport: false });
-    const html = "<html><head></head><body></body></html>";
-    const result = (plugin as any).transformIndexHtml(html);
+    const result = (plugin as any).transformIndexHtml();
 
-    expect(result).not.toContain("solid-grab");
+    expect(result).toBeUndefined();
   });
 });
