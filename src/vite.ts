@@ -180,6 +180,7 @@ export default function solidGrab(
     jsxLocation = true,
     componentLocation = true,
     autoImport = true,
+    key = "Alt",
   } = options;
 
   let projectRoot = "";
@@ -201,7 +202,7 @@ export default function solidGrab(
 
     load(id) {
       if (id === RESOLVED_VIRTUAL_INIT) {
-        return `import "solid-grab";`;
+        return `import { initSolidGrab } from "solid-grab";\ninitSolidGrab({ key: "${key}" });`;
       }
     },
 

@@ -207,6 +207,36 @@ describe("transform", () => {
   });
 });
 
+describe("virtual module (key config)", () => {
+  test("emits initSolidGrab with default Alt key", () => {
+    const plugin = createPlugin();
+    const result = (plugin as any).load("\0virtual:solid-grab-init");
+
+    expect(result).toContain('import { initSolidGrab } from "solid-grab"');
+    expect(result).toContain('initSolidGrab({ key: "Alt" })');
+  });
+
+  test("emits initSolidGrab with Meta key", () => {
+    const plugin = createPlugin({ key: "Meta" });
+    const result = (plugin as any).load("\0virtual:solid-grab-init");
+
+    expect(result).toContain('initSolidGrab({ key: "Meta" })');
+  });
+
+  test("emits initSolidGrab with Control key", () => {
+    const plugin = createPlugin({ key: "Control" });
+    const result = (plugin as any).load("\0virtual:solid-grab-init");
+
+    expect(result).toContain('initSolidGrab({ key: "Control" })');
+  });
+
+  test("returns undefined for non-virtual module ids", () => {
+    const plugin = createPlugin();
+    const result = (plugin as any).load("/project/src/App.tsx");
+    expect(result).toBeUndefined();
+  });
+});
+
 describe("transformIndexHtml", () => {
   test("returns tag descriptors in dev mode", () => {
     const plugin = createPlugin();

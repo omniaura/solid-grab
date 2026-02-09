@@ -77,6 +77,13 @@ export interface SolidGrabPluginOptions {
    * @default true
    */
   autoImport?: boolean;
+
+  /**
+   * Activation key to hold while hovering to grab elements.
+   * Passed through to the runtime via the virtual module.
+   * @default "Alt"
+   */
+  key?: "Alt" | "Control" | "Meta";
 }
 
 // ── Data attribute names ─────────────────────────────────────────────
