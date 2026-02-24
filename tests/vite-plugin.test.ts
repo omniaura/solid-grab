@@ -73,11 +73,10 @@ describe("transform", () => {
     expect(result).toBeNull();
   });
 
-  test("skips in production mode", () => {
-    const plugin = createPlugin({}, "production");
-    const code = `function App() {\n  return <div>hello</div>;\n}`;
-    const result = (plugin as any).transform(code, "/project/src/App.tsx");
-    expect(result).toBeNull();
+  test("skips in production mode (apply: serve)", () => {
+    const plugin = solidGrab();
+    // Vite skips the entire plugin during `vite build` because apply is "serve"
+    expect(plugin.apply).toBe("serve");
   });
 
   test("does not inject into TypeScript generics", () => {
@@ -250,11 +249,10 @@ describe("transformIndexHtml", () => {
     expect(result[0].injectTo).toBe("head");
   });
 
-  test("returns undefined in production mode", () => {
-    const plugin = createPlugin({}, "production");
-    const result = (plugin as any).transformIndexHtml();
-
-    expect(result).toBeUndefined();
+  test("skips in production mode (apply: serve)", () => {
+    const plugin = solidGrab();
+    // Vite skips the entire plugin during `vite build` because apply is "serve"
+    expect(plugin.apply).toBe("serve");
   });
 
   test("returns undefined when autoImport is false", () => {
