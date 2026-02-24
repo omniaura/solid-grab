@@ -184,15 +184,14 @@ export default function solidGrab(
   } = options;
 
   let projectRoot = "";
-  let isDev = false;
 
   return {
     name: "solid-grab",
     enforce: "pre", // Run before vite-plugin-solid
+    apply: "serve", // Only active during dev — completely skipped in production builds
 
     configResolved(config: ResolvedConfig) {
       projectRoot = config.root;
-      isDev = config.command === "serve" || config.mode === "development";
     },
 
     // Virtual module that imports the runtime — resolved by Vite's pipeline
@@ -207,9 +206,6 @@ export default function solidGrab(
     },
 
     transform(code, id) {
-      // Only transform in dev mode
-      if (!isDev) return null;
-
       // Only transform JSX/TSX files in the user's project
       if (!/\.[jt]sx$/.test(id)) return null;
       if (id.includes("node_modules")) return null;
@@ -245,7 +241,7 @@ export default function solidGrab(
 
     // Inject a <script src> that Vite's dev server will resolve
     transformIndexHtml() {
-      if (!autoImport || !isDev) return;
+      if (!autoImport) return;
       return [
         {
           tag: "script",
