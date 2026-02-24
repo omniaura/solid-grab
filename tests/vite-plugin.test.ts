@@ -4,17 +4,12 @@ import solidGrab from "../src/vite.js";
 
 /** Helper: create the plugin and simulate Vite's configResolved hook */
 function createPlugin(
-  options: Parameters<typeof solidGrab>[0] = {},
-  mode: "development" | "production" = "development"
+  options: Parameters<typeof solidGrab>[0] = {}
 ): Plugin {
   const plugin = solidGrab(options);
 
   // Simulate Vite calling configResolved
-  const fakeConfig = {
-    root: "/project",
-    command: mode === "development" ? "serve" : "build",
-    mode,
-  } as ResolvedConfig;
+  const fakeConfig = { root: "/project" } as ResolvedConfig;
 
   (plugin as any).configResolved(fakeConfig);
   return plugin;
@@ -29,6 +24,11 @@ describe("plugin metadata", () => {
   test("enforces pre", () => {
     const plugin = solidGrab();
     expect(plugin.enforce).toBe("pre");
+  });
+
+  test("only applies during dev serve", () => {
+    const plugin = solidGrab();
+    expect(plugin.apply).toBe("serve");
   });
 });
 
@@ -71,12 +71,6 @@ describe("transform", () => {
     const code = `function App() {\n  return <div>hello</div>;\n}`;
     const result = (plugin as any).transform(code, "/project/node_modules/foo/index.tsx");
     expect(result).toBeNull();
-  });
-
-  test("skips in production mode (apply: serve)", () => {
-    const plugin = solidGrab();
-    // Vite skips the entire plugin during `vite build` because apply is "serve"
-    expect(plugin.apply).toBe("serve");
   });
 
   test("does not inject into TypeScript generics", () => {
@@ -237,7 +231,7 @@ describe("virtual module (key config)", () => {
 });
 
 describe("transformIndexHtml", () => {
-  test("returns tag descriptors in dev mode", () => {
+  test("returns tag descriptors", () => {
     const plugin = createPlugin();
     const result = (plugin as any).transformIndexHtml();
 
@@ -247,12 +241,6 @@ describe("transformIndexHtml", () => {
     expect(result[0].attrs.type).toBe("module");
     expect(result[0].attrs.src).toBe("/@solid-grab/init");
     expect(result[0].injectTo).toBe("head");
-  });
-
-  test("skips in production mode (apply: serve)", () => {
-    const plugin = solidGrab();
-    // Vite skips the entire plugin during `vite build` because apply is "serve"
-    expect(plugin.apply).toBe("serve");
   });
 
   test("returns undefined when autoImport is false", () => {
