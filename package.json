@@ -1,6 +1,6 @@
 {
   "name": "solid-grab",
-  "version": "0.1.0",
+  "version": "1.1.2",
   "description": "Select context for coding agents directly from your SolidJS app",
   "type": "module",
   "main": "./dist/index.js",
