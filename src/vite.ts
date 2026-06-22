@@ -52,6 +52,101 @@ const JSX_PRECEDING_KEYWORDS = new Set([
 ]);
 
 /**
+ * Builds a mask over `code` marking every character that lives inside a
+ * string literal, template-literal text, or comment — positions where a `<`
+ * can never start a JSX tag. Template-literal interpolations (`${ ... }`) are
+ * treated as code so JSX inside them is still detected.
+ *
+ * Without this, the scanner mangles angle-bracket text that merely appears
+ * inside a string. For example a CLI placeholder like
+ *
+ *   `gh secret set ... --repo ${shq(repo() || "<owner>/<repo>")} ...`
+ *
+ * matches the JSX regex at `<repo>`; isLikelyJsx() then sees the preceding `/`
+ * (an "operator") and injects `data-solid-source="..."` straight into the
+ * string, whose embedded `"` breaks the literal and crashes the Babel parse.
+ *
+ * Note: regular-expression literals are not tracked (the regex-vs-division
+ * ambiguity needs a real tokenizer). A `<tag>` inside a regex literal remains
+ * a known edge case, but those are far rarer than strings and comments.
+ */
+function buildLiteralMask(code: string): Uint8Array {
+  const n = code.length;
+  const mask = new Uint8Array(n);
+
+  // Scanner modes. We keep a stack so a `${ }` interpolation can nest a fresh
+  // "code" region (and another template, string, etc.) inside a template.
+  type Mode = "code" | "sq" | "dq" | "tpl" | "line" | "block";
+  const stack: Mode[] = ["code"];
+
+  // Brace depth within code regions, plus the depth recorded when each `${`
+  // opened, so we know which `}` closes the interpolation.
+  let braceDepth = 0;
+  const interpDepths: number[] = [];
+
+  let i = 0;
+  while (i < n) {
+    const mode = stack[stack.length - 1]!;
+    const c = code[i]!;
+    const d = i + 1 < n ? code[i + 1]! : "";
+
+    switch (mode) {
+      case "code":
+        if (c === "/" && d === "/") { stack.push("line"); mask[i] = mask[i + 1] = 1; i += 2; }
+        else if (c === "/" && d === "*") { stack.push("block"); mask[i] = mask[i + 1] = 1; i += 2; }
+        else if (c === "'") { stack.push("sq"); mask[i] = 1; i++; }
+        else if (c === '"') { stack.push("dq"); mask[i] = 1; i++; }
+        else if (c === "`") { stack.push("tpl"); mask[i] = 1; i++; }
+        else if (c === "{") { braceDepth++; i++; }
+        else if (c === "}") {
+          braceDepth--;
+          // Closing brace of a `${ }` → resume the enclosing template literal.
+          if (interpDepths.length && interpDepths[interpDepths.length - 1] === braceDepth) {
+            interpDepths.pop();
+            stack.pop();
+          }
+          i++;
+        } else i++;
+        break;
+
+      case "line":
+        if (c === "\n") { stack.pop(); i++; } // newline is code
+        else { mask[i] = 1; i++; }
+        break;
+
+      case "block":
+        if (c === "*" && d === "/") { mask[i] = mask[i + 1] = 1; stack.pop(); i += 2; }
+        else { mask[i] = 1; i++; }
+        break;
+
+      case "sq":
+      case "dq": {
+        if (c === "\\") { mask[i] = 1; if (i + 1 < n) mask[i + 1] = 1; i += 2; break; }
+        mask[i] = 1;
+        if (c === (mode === "sq" ? "'" : '"') || c === "\n") stack.pop();
+        i++;
+        break;
+      }
+
+      case "tpl":
+        if (c === "\\") { mask[i] = 1; if (i + 1 < n) mask[i + 1] = 1; i += 2; }
+        else if (c === "`") { mask[i] = 1; stack.pop(); i++; }
+        else if (c === "$" && d === "{") {
+          // Enter an interpolation: its contents are code, not template text.
+          mask[i] = mask[i + 1] = 1;
+          interpDepths.push(braceDepth);
+          braceDepth++;
+          stack.push("code");
+          i += 2;
+        } else { mask[i] = 1; i++; }
+        break;
+    }
+  }
+
+  return mask;
+}
+
+/**
  * Walks backwards from `<` (skipping whitespace) to determine whether
  * it's a JSX opening tag or a less-than comparison.
  *
@@ -117,6 +212,10 @@ function transformJsx(
   // Strip the project root prefix to keep paths short
   const shortFile = fileId.replace(/^\//, "");
 
+  // Mark characters that live inside strings, templates, or comments so the
+  // scanner never injects attributes into angle-bracket text that isn't JSX.
+  const literalMask = buildLiteralMask(code);
+
   let result = "";
   let lastIndex = 0;
 
@@ -131,6 +230,11 @@ function transformJsx(
     const suffix = match[3]!; // space, `/>`, or `>`
 
     const offset = match.index;
+
+    // Skip `<` that sits inside a string literal, template text, or comment.
+    if (literalMask[offset]) {
+      continue;
+    }
 
     // Skip comparisons like `x < y` — only inject into actual JSX
     if (!isLikelyJsx(code, offset)) {

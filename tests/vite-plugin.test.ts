@@ -181,6 +181,63 @@ describe("transform", () => {
     expect(result.code).toContain("count() < maxItems");
   });
 
+  test("does not inject into angle brackets inside a string literal", () => {
+    const plugin = createPlugin();
+    const code = `const placeholder = "<owner>/<repo>";`;
+    const result = (plugin as any).transform(code, "/project/src/foo.tsx");
+    // No JSX here — the angle brackets live inside a string.
+    expect(result).toBeNull();
+  });
+
+  test("does not mangle angle-bracket placeholders inside a template literal", () => {
+    // Regression: a CLI command built with a template literal whose
+    // interpolation contains a string with `<owner>/<repo>` used to get
+    // `data-solid-source="..."` injected into the string, which broke the
+    // Babel parse with `Unexpected token, expected ","`.
+    const plugin = createPlugin();
+    const code = [
+      `function App() {`,
+      `  const ghCmd = () =>`,
+      '    `gh secret set ${shq(name())} --repo ${shq(repo() || "<owner>/<repo>")} --body ${shq(key())}`',
+      `  return <div>{ghCmd()}</div>;`,
+      `}`,
+    ].join("\n");
+    const result = (plugin as any).transform(code, "/project/src/App.tsx");
+
+    expect(result).not.toBeNull();
+    // The placeholder string must be left exactly as-is.
+    expect(result.code).toContain('"<owner>/<repo>"');
+    expect(result.code).not.toContain("<repo data-solid-source");
+    // ...while the real JSX still gets a source attribute.
+    expect(result.code).toContain('data-solid-source="src/App.tsx:');
+  });
+
+  test("does not inject into angle brackets inside comments", () => {
+    const plugin = createPlugin();
+    const code = [
+      `function App() {`,
+      `  // renders a <div> wrapper`,
+      `  /* fallback is <span> */`,
+      `  return null;`,
+      `}`,
+    ].join("\n");
+    const result = (plugin as any).transform(code, "/project/src/App.tsx");
+    expect(result).toBeNull();
+  });
+
+  test("still injects into JSX inside a template-literal interpolation", () => {
+    const plugin = createPlugin();
+    // `<b>` is template text (skipped); `<Foo/>` lives in the ${} and is JSX.
+    const code = "const t = `<b>${cond ? <Foo /> : null}</b>`;";
+    const result = (plugin as any).transform(code, "/project/src/App.tsx");
+
+    expect(result).not.toBeNull();
+    expect(result.code).toContain('data-solid-component="Foo"');
+    // The literal `<b>` text must be untouched.
+    expect(result.code).toContain("`<b>");
+    expect(result.code).not.toContain("<b data-solid-source");
+  });
+
   test("respects jsxLocation: false", () => {
     const plugin = createPlugin({ jsxLocation: false });
     const code = `function App() {\n  return <div>hello</div>;\n}`;
