@@ -1,15 +1,17 @@
 import { test, expect, describe } from "bun:test";
 import type { Plugin, ResolvedConfig } from "vite";
 import solidGrab from "../src/vite.js";
+import { inspect } from "../src/inspector.js";
 
 /** Helper: create the plugin and simulate Vite's configResolved hook */
 function createPlugin(
-  options: Parameters<typeof solidGrab>[0] = {}
+  options: Parameters<typeof solidGrab>[0] = {},
+  root = "/project"
 ): Plugin {
   const plugin = solidGrab(options);
 
   // Simulate Vite calling configResolved
-  const fakeConfig = { root: "/project" } as ResolvedConfig;
+  const fakeConfig = { root } as ResolvedConfig;
 
   (plugin as any).configResolved(fakeConfig);
   return plugin;
@@ -29,6 +31,52 @@ describe("plugin metadata", () => {
   test("only applies during dev serve", () => {
     const plugin = solidGrab();
     expect(plugin.apply).toBe("serve");
+  });
+});
+
+describe("source paths", () => {
+  const code = "const el = <p>Shared UI</p>;";
+
+  test.each([
+    ["/project/apps/web", "/project/packages/ui/src/primitives.tsx", "../../packages/ui/src/primitives.tsx"],
+    ["/project", "/project-other/App.tsx", "../project-other/App.tsx"],
+    ["/project/", "/project/src/App.tsx", "src/App.tsx"],
+    ["/", "/src/App.tsx", "src/App.tsx"],
+  ])("uses project-relative paths from %s to %s", (root, id, expected) => {
+    const plugin = createPlugin({}, root);
+    const result = (plugin as any).transform(code, id);
+    expect(result.code).toContain(`data-solid-source="${expected}:1:12"`);
+  });
+
+  test.each(["../..", "/project"])("accepts a custom project root: %s", (projectRoot) => {
+    const plugin = createPlugin({ projectRoot }, "/project/apps/web");
+    const result = (plugin as any).transform(code, "/project/packages/ui/src/primitives.tsx");
+    expect(result.code).toContain('data-solid-source="packages/ui/src/primitives.tsx:1:12"');
+  });
+
+  test("system-root mode preserves absolute paths including the leading slash", () => {
+    const plugin = createPlugin({ pathMode: "system-root" });
+    const result = (plugin as any).transform(code, "/project/src/App.tsx");
+    expect(result.code).toContain('data-solid-source="/project/src/App.tsx:1:12"');
+  });
+
+  test("project-root mode keeps copied source, component tree, and HTML relative", () => {
+    const root = "/Users/peyton/code/ditto/heyditto-stack/.worktrees/example/console";
+    const plugin = createPlugin({ pathMode: "project-root" }, `${root}/apps/web`);
+    const result = (plugin as any).transform(code, `${root}/packages/ui/src/primitives.tsx`);
+    const container = document.createElement("div");
+    container.innerHTML = result.code.slice(result.code.indexOf("<p"), -1);
+    const element = container.firstElementChild as HTMLElement;
+    element.setAttribute("data-solid-component", "SharedUI");
+    const context = inspect(element);
+
+    expect(context.elementSource).toEqual({
+      file: "../../packages/ui/src/primitives.tsx", line: 1, column: 12,
+    });
+    expect(context.formatted).toContain("Source:  ../../packages/ui/src/primitives.tsx:1:12");
+    expect(context.formatted).toContain("<SharedUI /> → ../../packages/ui/src/primitives.tsx:1:12");
+    expect(context.formatted).toContain('data-solid-source="../../packages/ui/src/primitives.tsx:1:12"');
+    expect(context.formatted).not.toContain("/Users/");
   });
 });
 
