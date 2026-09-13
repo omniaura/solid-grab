@@ -310,7 +310,8 @@ describe("virtual module (key config)", () => {
     const plugin = createPlugin();
     const result = (plugin as any).load("\0virtual:solid-grab-init");
 
-    expect(result).toContain('import { initSolidGrab } from "solid-grab"');
+    expect(result).toContain('import { initSolidGrab, destroySolidGrab } from "solid-grab"');
+    expect(result).toContain("import.meta.hot.dispose(() => destroySolidGrab())");
     expect(result).toContain('initSolidGrab({ key: "Alt", showBadge: true })');
   });
 
