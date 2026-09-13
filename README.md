@@ -116,6 +116,9 @@ if (import.meta.env.DEV) {
     // Show toast on copy (default: true)
     showToast: true,
 
+    // Show the standalone badge (default: true)
+    showBadge: true,
+
     // WebSocket URL for agent bridge
     agentUrl: "ws://localhost:4567",
 
@@ -177,12 +180,32 @@ Tear down the overlay and event listeners. Useful for HMR cleanup.
 
 Programmatically inspect any DOM element and get its full context.
 
+### `setBadgeVisible(visible: boolean)`
+
+Show or hide the standalone badge without changing grab behavior.
+
+### `setPicking(picking: boolean)`
+
+Start or stop persistent click selection. While enabled, click an element to copy/send context without holding the activation key. Escape cancels; a successful click stops persistent picking and suppresses the clicked element's default navigation.
+
+### `status(): SolidGrabStatus`
+
+Returns a serializable snapshot: `{ initialized, picking, badgeVisible, key }`.
+
+### `subscribe(listener): () => void`
+
+Subscribe to runtime status changes. Returns an unsubscribe function.
+
 ### `window.__SOLID_GRAB__`
 
 Global API for extensibility:
 - `.init(options)` — same as `initSolidGrab`
 - `.destroy()` — same as `destroySolidGrab`
 - `.inspect(el)` — same as `inspect`
+- `.setBadgeVisible(visible)` — same as `setBadgeVisible`
+- `.setPicking(picking)` — same as `setPicking`
+- `.status()` — same as `status`
+- `.subscribe(listener)` — same as `subscribe`
 
 ---
 

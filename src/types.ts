@@ -55,7 +55,24 @@ export interface SolidGrabOptions {
    * @default true
    */
   showToast?: boolean;
+
+  /**
+   * Whether to show the standalone solid-grab badge.
+   * @default true
+   */
+  showBadge?: boolean;
 }
+
+// ── Runtime API ──────────────────────────────────────────────────────
+
+export interface SolidGrabStatus {
+  initialized: boolean;
+  picking: boolean;
+  badgeVisible: boolean;
+  key: NonNullable<SolidGrabOptions["key"]>;
+}
+
+export type SolidGrabStatusListener = (status: SolidGrabStatus) => void;
 
 // ── Vite plugin options ──────────────────────────────────────────────
 
@@ -97,6 +114,13 @@ export interface SolidGrabPluginOptions {
    * @default "Alt"
    */
   key?: "Alt" | "Control" | "Meta";
+
+  /**
+   * Whether the runtime should show its standalone badge.
+   * Passed through to the runtime via the virtual module.
+   * @default true
+   */
+  showBadge?: boolean;
 }
 
 // ── Data attribute names ─────────────────────────────────────────────

@@ -56,6 +56,16 @@ describe("Overlay", () => {
       const badge = document.querySelector(".solid-grab-badge");
       expect(badge?.textContent).toBe("test text");
     });
+
+    test("setBadgeVisible toggles badge display", () => {
+      overlay.mount();
+      overlay.setBadgeVisible(false);
+      const badge = document.querySelector(".solid-grab-badge") as HTMLElement;
+      expect(badge.style.display).toBe("none");
+
+      overlay.setBadgeVisible(true);
+      expect(badge.style.display).toBe("");
+    });
   });
 
   describe("clearHighlight", () => {

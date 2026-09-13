@@ -8,6 +8,8 @@
 
 import type { SourceLocation } from "./types.js";
 
+const OWN_ATTR = "data-solid-grab";
+
 // ── Styles ───────────────────────────────────────────────────────────
 
 const OVERLAY_STYLES = `
@@ -119,17 +121,21 @@ export class Overlay {
 
     this.overlayEl = document.createElement("div");
     this.overlayEl.className = "solid-grab-overlay";
+    this.overlayEl.setAttribute(OWN_ATTR, "overlay");
     this.overlayEl.style.display = "none";
 
     this.tooltipEl = document.createElement("div");
     this.tooltipEl.className = "solid-grab-tooltip";
+    this.tooltipEl.setAttribute(OWN_ATTR, "tooltip");
     this.tooltipEl.style.display = "none";
 
     this.toastEl = document.createElement("div");
     this.toastEl.className = "solid-grab-toast";
+    this.toastEl.setAttribute(OWN_ATTR, "toast");
 
     this.badgeEl = document.createElement("div");
     this.badgeEl.className = "solid-grab-badge";
+    this.badgeEl.setAttribute(OWN_ATTR, "badge");
     this.badgeEl.textContent = "⚡ solid-grab";
   }
 
@@ -137,11 +143,13 @@ export class Overlay {
     if (this._mounted) return;
     this._mounted = true;
 
-    document.head.appendChild(this.styleEl);
-    document.body.appendChild(this.overlayEl);
-    document.body.appendChild(this.tooltipEl);
-    document.body.appendChild(this.toastEl);
-    document.body.appendChild(this.badgeEl);
+    const styleHost = document.head ?? document.documentElement;
+    const elementHost = document.body ?? document.documentElement;
+    styleHost.appendChild(this.styleEl);
+    elementHost.appendChild(this.overlayEl);
+    elementHost.appendChild(this.tooltipEl);
+    elementHost.appendChild(this.toastEl);
+    elementHost.appendChild(this.badgeEl);
   }
 
   unmount() {
@@ -222,5 +230,10 @@ export class Overlay {
   /** Update badge text */
   setBadge(text: string) {
     this.badgeEl.textContent = text;
+  }
+
+  /** Show or hide the standalone badge */
+  setBadgeVisible(visible: boolean) {
+    this.badgeEl.style.display = visible ? "" : "none";
   }
 }
