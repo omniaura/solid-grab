@@ -56,7 +56,6 @@ let pendingClickSuppression: {
   target: HTMLElement;
   releasedTarget?: HTMLElement;
   button: number;
-  clearTimer: ReturnType<typeof setTimeout> | null;
 } | null = null;
 let badgeVisible = true;
 let pendingBadgeVisible: boolean | null = null;
@@ -146,6 +145,7 @@ function isPlainActivationKeyDown(e: KeyboardEvent): boolean {
 }
 
 function onKeyDown(e: KeyboardEvent) {
+  clearPendingClickSuppression();
   if (persistentPicking && e.key === "Escape") {
     e.preventDefault();
     e.stopPropagation();
@@ -207,9 +207,6 @@ function findGrabbableTarget(target: EventTarget | null): HTMLElement | null {
 }
 
 function clearPendingClickSuppression() {
-  if (pendingClickSuppression?.clearTimer) {
-    clearTimeout(pendingClickSuppression.clearTimer);
-  }
   pendingClickSuppression = null;
 }
 
@@ -218,7 +215,6 @@ function suppressClickForGesture(target: HTMLElement, e: MouseEvent) {
   pendingClickSuppression = {
     target,
     button: e.button,
-    clearTimer: null,
   };
 }
 
@@ -236,13 +232,9 @@ function clickMatchesSuppressedGesture(target: HTMLElement | null, e: MouseEvent
   return target === common;
 }
 
-function clearSuppressionAfterCurrentClickTask(e: MouseEvent) {
+function markGestureReleased(e: MouseEvent) {
   if (!pendingClickSuppression || pendingClickSuppression.button !== e.button) return;
   pendingClickSuppression.releasedTarget = findGrabbableTarget(e.target) ?? undefined;
-  if (pendingClickSuppression.clearTimer) clearTimeout(pendingClickSuppression.clearTimer);
-  pendingClickSuppression.clearTimer = setTimeout(() => {
-    pendingClickSuppression = null;
-  }, 0);
 }
 
 function highlightElement(el: HTMLElement) {
@@ -291,6 +283,8 @@ function grabElement(target: HTMLElement) {
 }
 
 function onMouseDown(e: MouseEvent) {
+  // A new press starts a different gesture, even when picking has finished.
+  clearPendingClickSuppression();
   if (!isPickingActive()) return;
 
   const target = findGrabbableTarget(e.target);
@@ -309,7 +303,7 @@ function onMouseDown(e: MouseEvent) {
 }
 
 function onMouseUp(e: MouseEvent) {
-  clearSuppressionAfterCurrentClickTask(e);
+  markGestureReleased(e);
 }
 
 function onPointerCancel() {

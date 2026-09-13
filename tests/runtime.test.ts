@@ -326,7 +326,7 @@ describe("runtime API", () => {
     expect(status().picking).toBe(false);
   });
 
-  test("suppresses the common-ancestor click when a pick ends over a sibling", () => {
+  test("suppresses the common-ancestor click even after a timer turn", async () => {
     initSolidGrab({ onGrab: () => false });
     const card = document.createElement('a');
     const first = document.createElement('span');
@@ -335,6 +335,7 @@ describe("runtime API", () => {
     setPicking(true);
     dispatch(first, new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
     dispatch(second, new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+    await new Promise(resolve => setTimeout(resolve, 1));
     expect(dispatch(card, new MouseEvent('click', { bubbles: true, cancelable: true }))).toBe(false);
     expect(dispatch(card, new MouseEvent('click', { bubbles: true, cancelable: true }))).toBe(true);
   });
