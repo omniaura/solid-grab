@@ -18,6 +18,7 @@
  *   });
  */
 
+import { relative, resolve } from "node:path";
 import type { Plugin, ResolvedConfig, ViteDevServer } from "vite";
 import type { SolidGrabPluginOptions } from "./types.js";
 
@@ -209,9 +210,6 @@ function transformJsx(
     return [lo + 1, offset - lineStarts[lo]! + 1];
   }
 
-  // Strip the project root prefix to keep paths short
-  const shortFile = fileId.replace(/^\//, "");
-
   // Mark characters that live inside strings, templates, or comments so the
   // scanner never injects attributes into angle-bracket text that isn't JSX.
   const literalMask = buildLiteralMask(code);
@@ -249,7 +247,7 @@ function transformJsx(
     const attrs: string[] = [];
 
     if (opts.jsxLocation) {
-      attrs.push(`data-solid-source="${shortFile}:${line}:${col}"`);
+      attrs.push(`data-solid-source="${fileId}:${line}:${col}"`);
     }
 
     if (opts.componentLocation && isComponent) {
@@ -285,6 +283,7 @@ export default function solidGrab(
     componentLocation = true,
     autoImport = true,
     key = "Alt",
+    pathMode = "project-root",
   } = options;
 
   let projectRoot = "";
@@ -295,7 +294,7 @@ export default function solidGrab(
     apply: "serve", // Only active during dev — completely skipped in production builds
 
     configResolved(config: ResolvedConfig) {
-      projectRoot = config.root;
+      projectRoot = resolve(config.root, options.projectRoot ?? ".");
     },
 
     // Virtual module that imports the runtime — resolved by Vite's pipeline
@@ -314,12 +313,12 @@ export default function solidGrab(
       if (!/\.[jt]sx$/.test(id)) return null;
       if (id.includes("node_modules")) return null;
 
-      // Make the path relative to project root
-      const relativePath = id.startsWith(projectRoot)
-        ? id.slice(projectRoot.length + 1)
-        : id;
+      // Shared packages outside Vite's root also get relative paths.
+      const sourcePath = (pathMode === "system-root"
+        ? id
+        : relative(projectRoot, id)).replace(/\\/g, "/");
 
-      const transformed = transformJsx(code, relativePath, {
+      const transformed = transformJsx(code, sourcePath, {
         jsxLocation,
         componentLocation,
       });

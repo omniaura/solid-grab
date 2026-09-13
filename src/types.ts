@@ -61,6 +61,19 @@ export interface SolidGrabOptions {
 
 export interface SolidGrabPluginOptions {
   /**
+   * Format source paths relative to the project root or as absolute paths.
+   * @default "project-root"
+   */
+  pathMode?: "project-root" | "system-root";
+
+  /**
+   * Base directory for project-root paths. Defaults to Vite's resolved root.
+   * Relative values are resolved against Vite's root. Set this to the
+   * repository root when Vite runs from a nested app in a monorepo.
+   */
+  projectRoot?: string;
+
+  /**
    * Inject `data-solid-source` attributes into JSX elements.
    * @default true
    */

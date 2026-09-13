@@ -76,6 +76,10 @@ HTML:
 
 ```ts
 solidGrab({
+  // Source paths relative to the project root (default: "project-root")
+  // Use "system-root" for full absolute paths.
+  pathMode: "project-root",
+
   // Inject data-solid-source attributes (default: true)
   jsxLocation: true,
 
@@ -86,6 +90,15 @@ solidGrab({
   autoImport: true,
 })
 ```
+
+Paths use Vite's resolved `root` by default. Shared files outside that directory
+use `../` paths instead of falling back to full system paths. This keeps source
+locations short in both the context and its HTML snippet.
+
+For a monorepo with Vite rooted at `apps/web`, set `projectRoot: "../.."` to
+use repository-relative paths such as `packages/ui/src/primitives.tsx:445:13`.
+`projectRoot` also accepts an absolute directory. To include full absolute paths,
+use `solidGrab({ pathMode: "system-root" })`. Restart Vite after changing these options.
 
 ### Runtime options
 
