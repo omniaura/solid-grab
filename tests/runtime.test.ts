@@ -326,6 +326,19 @@ describe("runtime API", () => {
     expect(status().picking).toBe(false);
   });
 
+  test("suppresses the common-ancestor click when a pick ends over a sibling", () => {
+    initSolidGrab({ onGrab: () => false });
+    const card = document.createElement('a');
+    const first = document.createElement('span');
+    const second = document.createElement('span');
+    card.append(first, second); document.body.append(card);
+    setPicking(true);
+    dispatch(first, new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+    dispatch(second, new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+    expect(dispatch(card, new MouseEvent('click', { bubbles: true, cancelable: true }))).toBe(false);
+    expect(dispatch(card, new MouseEvent('click', { bubbles: true, cancelable: true }))).toBe(true);
+  });
+
   test("does not grab or swallow Solid Pulse subtrees", () => {
     const grabbed: string[] = [];
     initSolidGrab({

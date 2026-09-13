@@ -54,6 +54,7 @@ let persistentPicking = false;
 let hoveredEl: HTMLElement | null = null;
 let pendingClickSuppression: {
   target: HTMLElement;
+  releasedTarget?: HTMLElement;
   button: number;
   clearTimer: ReturnType<typeof setTimeout> | null;
 } | null = null;
@@ -223,11 +224,21 @@ function suppressClickForGesture(target: HTMLElement, e: MouseEvent) {
 
 function clickMatchesSuppressedGesture(target: HTMLElement | null, e: MouseEvent): boolean {
   if (!target || !pendingClickSuppression) return false;
-  return target === pendingClickSuppression.target && e.button === pendingClickSuppression.button;
+  const pending = pendingClickSuppression;
+  if (e.button !== pending.button) return false;
+  if (target === pending.target) return true;
+  // A down/up on siblings dispatches click to their nearest common ancestor.
+  // Only accept that retargeting after this gesture's mouseup, not an arbitrary
+  // later click on an ancestor or unrelated control.
+  if (!pending.releasedTarget) return false;
+  let common: HTMLElement | null = pending.target;
+  while (common && !common.contains(pending.releasedTarget)) common = common.parentElement;
+  return target === common;
 }
 
 function clearSuppressionAfterCurrentClickTask(e: MouseEvent) {
   if (!pendingClickSuppression || pendingClickSuppression.button !== e.button) return;
+  pendingClickSuppression.releasedTarget = findGrabbableTarget(e.target) ?? undefined;
   if (pendingClickSuppression.clearTimer) clearTimeout(pendingClickSuppression.clearTimer);
   pendingClickSuppression.clearTimer = setTimeout(() => {
     pendingClickSuppression = null;
