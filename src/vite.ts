@@ -283,6 +283,7 @@ export default function solidGrab(
     componentLocation = true,
     autoImport = true,
     key = "Alt",
+    showBadge = true,
     pathMode = "project-root",
   } = options;
 
@@ -304,7 +305,7 @@ export default function solidGrab(
 
     load(id) {
       if (id === RESOLVED_VIRTUAL_INIT) {
-        return `import { initSolidGrab } from "solid-grab";\ninitSolidGrab({ key: "${key}" });`;
+        return `import { initSolidGrab, destroySolidGrab } from "solid-grab";\ninitSolidGrab({ key: "${key}", showBadge: ${JSON.stringify(showBadge)} });\nif (import.meta.hot) import.meta.hot.dispose(() => destroySolidGrab());`;
       }
     },
 

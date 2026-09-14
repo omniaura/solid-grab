@@ -310,22 +310,30 @@ describe("virtual module (key config)", () => {
     const plugin = createPlugin();
     const result = (plugin as any).load("\0virtual:solid-grab-init");
 
-    expect(result).toContain('import { initSolidGrab } from "solid-grab"');
-    expect(result).toContain('initSolidGrab({ key: "Alt" })');
+    expect(result).toContain('import { initSolidGrab, destroySolidGrab } from "solid-grab"');
+    expect(result).toContain("import.meta.hot.dispose(() => destroySolidGrab())");
+    expect(result).toContain('initSolidGrab({ key: "Alt", showBadge: true })');
   });
 
   test("emits initSolidGrab with Meta key", () => {
     const plugin = createPlugin({ key: "Meta" });
     const result = (plugin as any).load("\0virtual:solid-grab-init");
 
-    expect(result).toContain('initSolidGrab({ key: "Meta" })');
+    expect(result).toContain('initSolidGrab({ key: "Meta", showBadge: true })');
   });
 
   test("emits initSolidGrab with Control key", () => {
     const plugin = createPlugin({ key: "Control" });
     const result = (plugin as any).load("\0virtual:solid-grab-init");
 
-    expect(result).toContain('initSolidGrab({ key: "Control" })');
+    expect(result).toContain('initSolidGrab({ key: "Control", showBadge: true })');
+  });
+
+  test("emits initSolidGrab with showBadge false", () => {
+    const plugin = createPlugin({ showBadge: false });
+    const result = (plugin as any).load("\0virtual:solid-grab-init");
+
+    expect(result).toContain('initSolidGrab({ key: "Alt", showBadge: false })');
   });
 
   test("returns undefined for non-virtual module ids", () => {
