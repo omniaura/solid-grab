@@ -43,21 +43,26 @@ const RESOLVED_VIRTUAL_INIT = "\0" + VIRTUAL_INIT;
  * to the list's closing `>` and requiring the arrow's parameters, `(`, next.
  */
 function continuesTypeParams(code: string, from: number): boolean {
-  const rest = code.slice(from, from + 2000);
-  if (/^\s*=(?![=>])/.test(rest)) return true;
-  const ext = /^\s+extends\s/.exec(rest);
+  if (/^\s*=(?![=>])/.test(code.slice(from, from + 64))) return true;
+  const ext = /^\s+extends\s/.exec(code.slice(from, from + 64));
   if (!ext) return false;
   let depth = 0;
-  for (let i = ext[0].length; i < rest.length; i++) {
-    const c = rest[i]!;
-    if (c === "(" || c === "[" || c === "{" || c === "<") depth++;
-    else if (c === ")" || c === "]" || c === "}") depth--;
-    else if (c === ">") {
-      if (rest[i - 1] === "=") continue; // arrow `=>` inside a function type
+  for (let i = from + ext[0].length; i < code.length; i++) {
+    const c = code[i]!;
+    if (c === '"' || c === "'" || c === "`") {
+      // Skip string/template literals (constraint literals or JSX attribute values).
+      const end = code.indexOf(c, i + 1);
+      if (end === -1) return false;
+      i = end;
+    } else if (c === "(" || c === "[" || c === "{" || c === "<") depth++;
+    else if (c === ")" || c === "]" || c === "}") {
+      if (--depth < 0) return false;
+    } else if (c === ">") {
+      if (code[i - 1] === "=") continue; // arrow `=>` inside a function type
       if (depth > 0) depth--;
-      else return /^\s*\(/.test(rest.slice(i + 1));
+      else if (code[i - 1] === "/") return false; // self-closing JSX tag
+      else return /^\s*\(/.test(code.slice(i + 1, i + 64));
     }
-    if (depth < 0) return false;
   }
   return false;
 }
