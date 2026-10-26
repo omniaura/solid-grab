@@ -2,6 +2,13 @@
 
 Add dev-mode element inspection to your SolidJS app. Hold Alt, hover any element, click to copy source location and component hierarchy — ready to paste into your AI coding agent.
 
+v2 requires Solid 2.0; use v1 for Solid 1.x. Install `solid-js` and
+`@solidjs/web` ^2.0.0-rc.16 and use Vite 8 with `@solidjs/vite-plugin` 3.
+Source injection runs before either the native (Oxc) or Babel compiler; no
+Babel configuration is needed. Set TypeScript `jsxImportSource` to `@solidjs/web`.
+
+The Solid 2 toolchain requires **Node.js >=22.12.0**.
+
 ## Installation
 
 ```bash
@@ -14,11 +21,11 @@ pnpm add -D solid-grab
 
 ## Vite Plugin Setup
 
-Add the `solid-grab` Vite plugin **before** `vite-plugin-solid` in your `vite.config.ts`:
+Add the `solid-grab` Vite plugin **before** `@solidjs/vite-plugin` in your `vite.config.ts`:
 
 ```typescript
 import solidGrab from "solid-grab/vite";
-import solidPlugin from "vite-plugin-solid";
+import solidPlugin from "@solidjs/vite-plugin";
 import { defineConfig } from "vite";
 
 export default defineConfig({
@@ -40,7 +47,7 @@ Here's how it looks in a production SolidJS app with Tailwind, PWA, and other pl
 /// <reference types="vitest/config" />
 import tailwindcss from "@tailwindcss/vite";
 import solidGrab from "solid-grab/vite";
-import solidPlugin from "vite-plugin-solid";
+import solidPlugin from "@solidjs/vite-plugin";
 import { VitePWA } from "vite-plugin-pwa";
 import { defineConfig } from "vitest/config";
 

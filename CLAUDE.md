@@ -28,6 +28,6 @@ bunfig.toml         # happy-dom test environment
 ## Architecture
 
 - **Two entry points**: `solid-grab` (browser runtime) and `solid-grab/vite` (Vite plugin, Node)
-- Vite plugin runs `enforce: "pre"` before vite-plugin-solid, injecting `data-solid-source` and `data-solid-component` attributes via regex
+- Vite plugin runs `enforce: "pre"` before @solidjs/vite-plugin, injecting `data-solid-source` and `data-solid-component` attributes via regex
 - Runtime auto-initializes on import (`import "solid-grab"`) — tests import sub-modules directly to avoid this side effect
 - All overlay DOM is raw (no Solid reactivity) to avoid interfering with the inspected app
