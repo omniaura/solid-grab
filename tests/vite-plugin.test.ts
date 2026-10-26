@@ -147,6 +147,7 @@ describe("transform", () => {
       `  const call = <F extends (x: string) => void>(fn: F) => fn;`,
       `  const dflt = <T extends object = { a: 1 }>(value: T) => value;`,
       `  const lit = <T extends ")" | "a>">(value: T) => value;`,
+      `  const esc = <T extends "a\\"b">(value: T) => value;`,
       `  return <div onClick={() => setField("a", 1)}>hello</div>;`,
       `}`,
     ].join("\n");
@@ -159,7 +160,8 @@ describe("transform", () => {
     expect(result.code).toContain("<F extends (x: string) => void>(fn: F)");
     expect(result.code).toContain("<T extends object = { a: 1 }>(value: T)");
     expect(result.code).toContain(`<T extends ")" | "a>">(value: T)`);
-    expect(result.code).toMatch(/<div data-solid-source="[^"]+:9:\d+"/);
+    expect(result.code).toContain(`<T extends "a\\"b">(value: T)`);
+    expect(result.code).toMatch(/<div data-solid-source="[^"]+:10:\d+"/);
   });
 
   test("still injects into elements with a boolean `extends` attribute", () => {
@@ -181,13 +183,14 @@ describe("transform", () => {
     const plugin = createPlugin();
     const code = [
       `function App() {`,
-      `  return (<div extends title="a>(b"><Foo extends bar/>{("x")}</div>);`,
+      `  return (<div extends title="a>(b"><Foo extends bar/>{("x")}<Bar extends baz / >\n(y)</div>);`,
       `}`,
     ].join("\n");
     const result = (plugin as any).transform(code, "/project/src/App.tsx");
 
     expect(result.code).toMatch(/<div data-solid-source="[^"]+:2:\d+" extends title/);
     expect(result.code).toMatch(/<Foo data-solid-source="[^"]+:2:\d+"/);
+    expect(result.code).toMatch(/<Bar data-solid-source="[^"]+:2:\d+"/);
   });
 
   test("injects into JSX but not generics in the same file", () => {

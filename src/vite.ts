@@ -51,8 +51,12 @@ function continuesTypeParams(code: string, from: number): boolean {
     const c = code[i]!;
     if (c === '"' || c === "'" || c === "`") {
       // Skip string/template literals (constraint literals or JSX attribute values).
-      const end = code.indexOf(c, i + 1);
-      if (end === -1) return false;
+      let end = i + 1;
+      while (end < code.length && code[end] !== c) {
+        if (code[end] === "\\") end++;
+        end++;
+      }
+      if (end >= code.length) return false;
       i = end;
     } else if (c === "(" || c === "[" || c === "{" || c === "<") depth++;
     else if (c === ")" || c === "]" || c === "}") {
@@ -60,7 +64,7 @@ function continuesTypeParams(code: string, from: number): boolean {
     } else if (c === ">") {
       if (code[i - 1] === "=") continue; // arrow `=>` inside a function type
       if (depth > 0) depth--;
-      else if (code[i - 1] === "/") return false; // self-closing JSX tag
+      else if (/\/\s*$/.test(code.slice(Math.max(from, i - 64), i))) return false; // self-closing JSX tag
       else return /^\s*\(/.test(code.slice(i + 1, i + 64));
     }
   }
