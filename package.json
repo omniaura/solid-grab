@@ -25,7 +25,9 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "test": "bun test",
-    "prepublishOnly": "bun run build"
+    "prepublishOnly": "bun run build",
+    "typecheck": "tsc --noEmit",
+    "example": "vite --config examples/solid2/vite.config.ts"
   },
   "keywords": [
     "solid",
@@ -48,8 +50,9 @@
     "url": "https://github.com/omniaura/solid-grab/issues"
   },
   "peerDependencies": {
-    "solid-js": ">=1.7.0",
-    "vite": ">=4.0.0"
+    "solid-js": "^2.0.0-rc.16",
+    "@solidjs/web": "^2.0.0-rc.16",
+    "vite": "^8.0.0"
   },
   "peerDependenciesMeta": {
     "vite": {
@@ -58,12 +61,14 @@
   },
   "devDependencies": {
     "@happy-dom/global-registrator": "^16.0.0",
-    "@types/bun": "latest",
     "@semantic-release/git": "^10.0.1",
+    "@solidjs/vite-plugin": "3.0.0-next.51",
+    "@solidjs/web": "2.0.0-rc.18",
+    "@types/bun": "latest",
     "semantic-release": "25",
-    "solid-js": "^1.8.0",
+    "solid-js": "2.0.0-rc.18",
     "tsup": "^8.0.0",
     "typescript": "^5.4.0",
-    "vite": "^5.0.0"
+    "vite": "8"
   }
 }

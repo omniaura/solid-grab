@@ -4,13 +4,13 @@
  * A Vite plugin that injects source-location data attributes into Solid JSX
  * so the runtime overlay can map DOM elements back to source code.
  *
- * Must be placed BEFORE vite-plugin-solid in the plugins array so it runs
+ * Must be placed BEFORE @solidjs/vite-plugin in the plugins array so it runs
  * on the raw JSX before Solid's compiler transforms it away.
  *
  * Usage:
  *   // vite.config.ts
  *   import { defineConfig } from "vite";
- *   import solid from "vite-plugin-solid";
+ *   import solid from "@solidjs/vite-plugin";
  *   import solidGrab from "solid-grab/vite";
  *
  *   export default defineConfig({
@@ -291,7 +291,7 @@ export default function solidGrab(
 
   return {
     name: "solid-grab",
-    enforce: "pre", // Run before vite-plugin-solid
+    enforce: "pre", // Run before @solidjs/vite-plugin
     apply: "serve", // Only active during dev — completely skipped in production builds
 
     configResolved(config: ResolvedConfig) {

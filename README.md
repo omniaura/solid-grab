@@ -16,10 +16,17 @@ Inspired by [react-grab](https://react-grab.com) by Aiden Bai.
 
 ---
 
+## Solid version support
+
+v2 requires Solid 2.0; use v1 for Solid 1.x. The overlay uses raw DOM APIs,
+not Solid internals. Source injection is a compiler-independent pre-transform,
+compatible with both the default native (Oxc) compiler and `compiler: "babel"`.
+
 ## Quick start
 
 ```bash
-npm install solid-grab --save-dev
+npm install solid-grab @solidjs/vite-plugin@3.0.0-next.51 vite@^8 --save-dev
+npm install solid-js@2.0.0-rc.18 @solidjs/web@2.0.0-rc.18
 ```
 
 ### 1. Add the Vite plugin
@@ -27,12 +34,12 @@ npm install solid-grab --save-dev
 ```ts
 // vite.config.ts
 import { defineConfig } from "vite";
-import solid from "vite-plugin-solid";
+import solid from "@solidjs/vite-plugin";
 import solidGrab from "solid-grab/vite";
 
 export default defineConfig({
   plugins: [
-    solidGrab(),   // ← must come BEFORE vite-plugin-solid
+    solidGrab(),   // ← must come BEFORE @solidjs/vite-plugin
     solid(),
   ],
 });
@@ -211,11 +218,25 @@ Global API for extensibility:
 
 ## Requirements
 
-- SolidJS >= 1.7
-- Vite >= 4.0
+- `solid-js` and `@solidjs/web` ^2.0.0-rc.16
+- Vite ^8.0.0
+- TypeScript JSX: `"jsx": "preserve", "jsxImportSource": "@solidjs/web"`
 - Dev mode only (all code is stripped in production)
 
 ---
+
+## Development example
+
+```bash
+bun install
+bun run build
+bun run example --port 5302 --strictPort --host 127.0.0.1
+# Test the Babel compiler instead:
+SOLID_COMPILER=babel bun run example --port 5302 --strictPort --host 127.0.0.1
+```
+
+The SPA counter exercises source attributes, hover highlighting, clipboard copying,
+and click suppression. The runtime is loaded from the built package export.
 
 ## License
 
