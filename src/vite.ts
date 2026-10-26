@@ -35,6 +35,9 @@ const RESOLVED_VIRTUAL_INIT = "\0" + VIRTUAL_INIT;
 // closing tags `</`, fragments `<>`, or self-referential generics).
 // We inject `data-solid-source="file:line:col"` right after the tag name.
 
+/** Type-parameter list continuation after `<T`: `extends X` or `= Default`. */
+const GENERIC_PARAMS_RE = /^\s+extends\s+(?!=)\S|^\s*=(?![=>])/;
+
 /**
  * Candidate regex for JSX opening tags. The negative lookbehind (?<!\w)
  * filters TypeScript generics (where `<` directly follows an identifier).
@@ -236,6 +239,14 @@ function transformJsx(
 
     // Skip comparisons like `x < y` — only inject into actual JSX
     if (!isLikelyJsx(code, offset)) {
+      continue;
+    }
+
+    // Skip generic arrow functions (`= <K extends keyof T>(key: K) => …`,
+    // `<T = Default>`): TSX requires `extends`/`,`/a default for a type
+    // parameter list in expression position, none of which can follow a JSX
+    // tag name.
+    if (GENERIC_PARAMS_RE.test(code.slice(offset + prefix.length + tagName.length))) {
       continue;
     }
 

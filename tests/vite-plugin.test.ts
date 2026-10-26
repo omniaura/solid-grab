@@ -136,6 +136,24 @@ describe("transform", () => {
     expect(result).toBeNull();
   });
 
+  test("does not inject into generic arrow functions", () => {
+    const plugin = createPlugin();
+    const code = [
+      `function Form() {`,
+      `  const setField = <K extends keyof FormState>(key: K, value: FormState[K]) => {};`,
+      `  const pick = async <T extends object>(value: T) => value;`,
+      `  const withDefault = <T = string>(value: T) => value;`,
+      `  return <div onClick={() => setField("a", 1)}>hello</div>;`,
+      `}`,
+    ].join("\n");
+    const result = (plugin as any).transform(code, "/project/src/Form.tsx");
+
+    expect(result.code).toContain("<K extends keyof FormState>(key: K");
+    expect(result.code).toContain("async <T extends object>(value: T)");
+    expect(result.code).toContain("<T = string>(value: T)");
+    expect(result.code).toMatch(/<div data-solid-source="[^"]+:5:\d+"/);
+  });
+
   test("injects into JSX but not generics in the same file", () => {
     const plugin = createPlugin();
     const code = [
