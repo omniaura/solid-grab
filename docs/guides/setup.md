@@ -7,6 +7,8 @@ v2 requires Solid 2.0; use v1 for Solid 1.x. Install `solid-js` and
 Source injection runs before either the native (Oxc) or Babel compiler; no
 Babel configuration is needed. Set TypeScript `jsxImportSource` to `@solidjs/web`.
 
+The Solid 2 toolchain requires **Node.js >=22.12.0**.
+
 ## Installation
 
 ```bash

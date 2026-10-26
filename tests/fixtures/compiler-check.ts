@@ -22,6 +22,7 @@ if (mode === "production") {
   assert(code.includes("Reactive counter"));
   assert(!code.includes("data-solid-source"));
   assert(!code.includes("solid-grab-init"));
+  assert(!code.includes("/@solid-grab/init"));
   assert(!code.includes("solid-grab-overlay"));
 } else {
   const server = await createServer({

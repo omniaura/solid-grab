@@ -22,6 +22,8 @@ v2 requires Solid 2.0; use v1 for Solid 1.x. The overlay uses raw DOM APIs,
 not Solid internals. Source injection is a compiler-independent pre-transform,
 compatible with both the default native (Oxc) compiler and `compiler: "babel"`.
 
+The Solid 2 toolchain requires **Node.js >=22.12.0**.
+
 ## Quick start
 
 ```bash
