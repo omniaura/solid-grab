@@ -148,6 +148,7 @@ describe("transform", () => {
       `  const dflt = <T extends object = { a: 1 }>(value: T) => value;`,
       `  const lit = <T extends ")" | "a>">(value: T) => value;`,
       `  const esc = <T extends "a\\"b">(value: T) => value;`,
+      `  const cmt = <T extends Array<number> /* elems */>(value: T) => value;`,
       `  return <div onClick={() => setField("a", 1)}>hello</div>;`,
       `}`,
     ].join("\n");
@@ -161,7 +162,8 @@ describe("transform", () => {
     expect(result.code).toContain("<T extends object = { a: 1 }>(value: T)");
     expect(result.code).toContain(`<T extends ")" | "a>">(value: T)`);
     expect(result.code).toContain(`<T extends "a\\"b">(value: T)`);
-    expect(result.code).toMatch(/<div data-solid-source="[^"]+:10:\d+"/);
+    expect(result.code).toContain("<T extends Array<number> /* elems */>(value: T)");
+    expect(result.code).toMatch(/<div data-solid-source="[^"]+:11:\d+"/);
   });
 
   test("still injects into elements with a boolean `extends` attribute", () => {

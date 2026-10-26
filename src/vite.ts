@@ -47,8 +47,22 @@ function continuesTypeParams(code: string, from: number): boolean {
   const ext = /^\s+extends\s/.exec(code.slice(from, from + 64));
   if (!ext) return false;
   let depth = 0;
+  let prev = ""; // last significant character (comments/whitespace skipped)
   for (let i = from + ext[0].length; i < code.length; i++) {
     const c = code[i]!;
+    if (c === "/" && code[i + 1] === "*") {
+      const end = code.indexOf("*/", i + 2);
+      if (end === -1) return false;
+      i = end + 1;
+      continue;
+    }
+    if (c === "/" && code[i + 1] === "/") {
+      const end = code.indexOf("\n", i);
+      if (end === -1) return false;
+      i = end;
+      continue;
+    }
+    if (/\s/.test(c)) continue;
     if (c === '"' || c === "'" || c === "`") {
       // Skip string/template literals (constraint literals or JSX attribute values).
       let end = i + 1;
@@ -62,11 +76,15 @@ function continuesTypeParams(code: string, from: number): boolean {
     else if (c === ")" || c === "]" || c === "}") {
       if (--depth < 0) return false;
     } else if (c === ">") {
-      if (code[i - 1] === "=") continue; // arrow `=>` inside a function type
+      if (prev === "=") {
+        prev = c;
+        continue; // arrow `=>` inside a function type
+      }
       if (depth > 0) depth--;
-      else if (/\/\s*$/.test(code.slice(Math.max(from, i - 64), i))) return false; // self-closing JSX tag
+      else if (prev === "/") return false; // self-closing JSX tag
       else return /^\s*\(/.test(code.slice(i + 1, i + 64));
     }
+    prev = c;
   }
   return false;
 }
