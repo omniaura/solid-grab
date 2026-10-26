@@ -35,8 +35,13 @@ const RESOLVED_VIRTUAL_INIT = "\0" + VIRTUAL_INIT;
 // closing tags `</`, fragments `<>`, or self-referential generics).
 // We inject `data-solid-source="file:line:col"` right after the tag name.
 
-/** Type-parameter list continuation after `<T`: `extends X` or `= Default`. */
-const GENERIC_PARAMS_RE = /^\s+extends\s+(?!=)\S|^\s*=(?![=>])/;
+/**
+ * Type-parameter list continuation after `<T`: `extends X>(` (the list must
+ * close straight into the arrow's parameters, which tells a constraint apart
+ * from a boolean JSX attribute named `extends`) or `= Default`.
+ */
+const GENERIC_PARAMS_RE =
+  /^\s+extends\s+[^=>{}/]*?(?:<[^<>]*>[^=>{}/]*?)*>\s*\(|^\s*=(?![=>])/;
 
 /**
  * Candidate regex for JSX opening tags. The negative lookbehind (?<!\w)

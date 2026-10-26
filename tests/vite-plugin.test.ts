@@ -154,6 +154,21 @@ describe("transform", () => {
     expect(result.code).toMatch(/<div data-solid-source="[^"]+:5:\d+"/);
   });
 
+  test("still injects into elements with a boolean `extends` attribute", () => {
+    const plugin = createPlugin();
+    const code = [
+      `function App() {`,
+      `  const pick = <T extends Record<string, number>>(value: T) => value;`,
+      `  return <div extends onClick={fn}><span\n    extends /></div>;`,
+      `}`,
+    ].join("\n");
+    const result = (plugin as any).transform(code, "/project/src/App.tsx");
+
+    expect(result.code).toContain("<T extends Record<string, number>>(value: T)");
+    expect(result.code).toMatch(/<div data-solid-source="[^"]+:3:\d+" extends onClick/);
+    expect(result.code).toMatch(/<span data-solid-source="[^"]+:3:\d+"/);
+  });
+
   test("injects into JSX but not generics in the same file", () => {
     const plugin = createPlugin();
     const code = [
