@@ -36,6 +36,60 @@ const RESOLVED_VIRTUAL_INIT = "\0" + VIRTUAL_INIT;
 // We inject `data-solid-source="file:line:col"` right after the tag name.
 
 /**
+ * Whether the text right after a `<Name` candidate continues a TypeScript
+ * type-parameter list instead of a JSX tag: `<T = Default …` or
+ * `<T extends Constraint>(…`. A constraint is told apart from a boolean JSX
+ * attribute named `extends` by balancing brackets (`=>` is not a closer) up
+ * to the list's closing `>` and requiring the arrow's parameters, `(`, next.
+ */
+function continuesTypeParams(code: string, from: number): boolean {
+  if (/^\s*=(?![=>])/.test(code.slice(from, from + 64))) return true;
+  const ext = /^\s+extends\s/.exec(code.slice(from, from + 64));
+  if (!ext) return false;
+  let depth = 0;
+  let prev = ""; // last significant character (comments/whitespace skipped)
+  for (let i = from + ext[0].length; i < code.length; i++) {
+    const c = code[i]!;
+    if (c === "/" && code[i + 1] === "*") {
+      const end = code.indexOf("*/", i + 2);
+      if (end === -1) return false;
+      i = end + 1;
+      continue;
+    }
+    if (c === "/" && code[i + 1] === "/") {
+      const end = code.indexOf("\n", i);
+      if (end === -1) return false;
+      i = end;
+      continue;
+    }
+    if (/\s/.test(c)) continue;
+    if (c === '"' || c === "'" || c === "`") {
+      // Skip string/template literals (constraint literals or JSX attribute values).
+      let end = i + 1;
+      while (end < code.length && code[end] !== c) {
+        if (code[end] === "\\") end++;
+        end++;
+      }
+      if (end >= code.length) return false;
+      i = end;
+    } else if (c === "(" || c === "[" || c === "{" || c === "<") depth++;
+    else if (c === ")" || c === "]" || c === "}") {
+      if (--depth < 0) return false;
+    } else if (c === ">") {
+      if (prev === "=") {
+        prev = c;
+        continue; // arrow `=>` inside a function type
+      }
+      if (depth > 0) depth--;
+      else if (prev === "/") return false; // self-closing JSX tag
+      else return /^\s*\(/.test(code.slice(i + 1, i + 64));
+    }
+    prev = c;
+  }
+  return false;
+}
+
+/**
  * Candidate regex for JSX opening tags. The negative lookbehind (?<!\w)
  * filters TypeScript generics (where `<` directly follows an identifier).
  * Comparison operators (where `<` is preceded by whitespace) are filtered
@@ -236,6 +290,14 @@ function transformJsx(
 
     // Skip comparisons like `x < y` — only inject into actual JSX
     if (!isLikelyJsx(code, offset)) {
+      continue;
+    }
+
+    // Skip generic arrow functions (`= <K extends keyof T>(key: K) => …`,
+    // `<T = Default>`): TSX requires `extends`/`,`/a default for a type
+    // parameter list in expression position, none of which can follow a JSX
+    // tag name.
+    if (continuesTypeParams(code, offset + prefix.length + tagName.length)) {
       continue;
     }
 

@@ -136,6 +136,65 @@ describe("transform", () => {
     expect(result).toBeNull();
   });
 
+  test("does not inject into generic arrow functions", () => {
+    const plugin = createPlugin();
+    const code = [
+      `function Form() {`,
+      `  const setField = <K extends keyof FormState>(key: K, value: FormState[K]) => {};`,
+      `  const pick = async <T extends object>(value: T) => value;`,
+      `  const withDefault = <T = string>(value: T) => value;`,
+      `  const shaped = <T extends { a: string; b?: number }>(value: T) => value;`,
+      `  const call = <F extends (x: string) => void>(fn: F) => fn;`,
+      `  const dflt = <T extends object = { a: 1 }>(value: T) => value;`,
+      `  const lit = <T extends ")" | "a>">(value: T) => value;`,
+      `  const esc = <T extends "a\\"b">(value: T) => value;`,
+      `  const cmt = <T extends Array<number> /* elems */>(value: T) => value;`,
+      `  return <div onClick={() => setField("a", 1)}>hello</div>;`,
+      `}`,
+    ].join("\n");
+    const result = (plugin as any).transform(code, "/project/src/Form.tsx");
+
+    expect(result.code).toContain("<K extends keyof FormState>(key: K");
+    expect(result.code).toContain("async <T extends object>(value: T)");
+    expect(result.code).toContain("<T = string>(value: T)");
+    expect(result.code).toContain("<T extends { a: string; b?: number }>(value: T)");
+    expect(result.code).toContain("<F extends (x: string) => void>(fn: F)");
+    expect(result.code).toContain("<T extends object = { a: 1 }>(value: T)");
+    expect(result.code).toContain(`<T extends ")" | "a>">(value: T)`);
+    expect(result.code).toContain(`<T extends "a\\"b">(value: T)`);
+    expect(result.code).toContain("<T extends Array<number> /* elems */>(value: T)");
+    expect(result.code).toMatch(/<div data-solid-source="[^"]+:11:\d+"/);
+  });
+
+  test("still injects into elements with a boolean `extends` attribute", () => {
+    const plugin = createPlugin();
+    const code = [
+      `function App() {`,
+      `  const pick = <T extends Record<string, number>>(value: T) => value;`,
+      `  return <div extends onClick={fn}><span\n    extends /></div>;`,
+      `}`,
+    ].join("\n");
+    const result = (plugin as any).transform(code, "/project/src/App.tsx");
+
+    expect(result.code).toContain("<T extends Record<string, number>>(value: T)");
+    expect(result.code).toMatch(/<div data-solid-source="[^"]+:3:\d+" extends onClick/);
+    expect(result.code).toMatch(/<span data-solid-source="[^"]+:3:\d+"/);
+  });
+
+  test("injects into extends-attribute elements with quoted or self-closing text", () => {
+    const plugin = createPlugin();
+    const code = [
+      `function App() {`,
+      `  return (<div extends title="a>(b"><Foo extends bar/>{("x")}<Bar extends baz / >\n(y)</div>);`,
+      `}`,
+    ].join("\n");
+    const result = (plugin as any).transform(code, "/project/src/App.tsx");
+
+    expect(result.code).toMatch(/<div data-solid-source="[^"]+:2:\d+" extends title/);
+    expect(result.code).toMatch(/<Foo data-solid-source="[^"]+:2:\d+"/);
+    expect(result.code).toMatch(/<Bar data-solid-source="[^"]+:2:\d+"/);
+  });
+
   test("injects into JSX but not generics in the same file", () => {
     const plugin = createPlugin();
     const code = [
