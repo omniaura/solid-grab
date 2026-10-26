@@ -143,6 +143,9 @@ describe("transform", () => {
       `  const setField = <K extends keyof FormState>(key: K, value: FormState[K]) => {};`,
       `  const pick = async <T extends object>(value: T) => value;`,
       `  const withDefault = <T = string>(value: T) => value;`,
+      `  const shaped = <T extends { a: string; b?: number }>(value: T) => value;`,
+      `  const call = <F extends (x: string) => void>(fn: F) => fn;`,
+      `  const dflt = <T extends object = { a: 1 }>(value: T) => value;`,
       `  return <div onClick={() => setField("a", 1)}>hello</div>;`,
       `}`,
     ].join("\n");
@@ -151,7 +154,10 @@ describe("transform", () => {
     expect(result.code).toContain("<K extends keyof FormState>(key: K");
     expect(result.code).toContain("async <T extends object>(value: T)");
     expect(result.code).toContain("<T = string>(value: T)");
-    expect(result.code).toMatch(/<div data-solid-source="[^"]+:5:\d+"/);
+    expect(result.code).toContain("<T extends { a: string; b?: number }>(value: T)");
+    expect(result.code).toContain("<F extends (x: string) => void>(fn: F)");
+    expect(result.code).toContain("<T extends object = { a: 1 }>(value: T)");
+    expect(result.code).toMatch(/<div data-solid-source="[^"]+:8:\d+"/);
   });
 
   test("still injects into elements with a boolean `extends` attribute", () => {

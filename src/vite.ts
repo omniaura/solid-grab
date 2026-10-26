@@ -36,12 +36,31 @@ const RESOLVED_VIRTUAL_INIT = "\0" + VIRTUAL_INIT;
 // We inject `data-solid-source="file:line:col"` right after the tag name.
 
 /**
- * Type-parameter list continuation after `<T`: `extends X>(` (the list must
- * close straight into the arrow's parameters, which tells a constraint apart
- * from a boolean JSX attribute named `extends`) or `= Default`.
+ * Whether the text right after a `<Name` candidate continues a TypeScript
+ * type-parameter list instead of a JSX tag: `<T = Default …` or
+ * `<T extends Constraint>(…`. A constraint is told apart from a boolean JSX
+ * attribute named `extends` by balancing brackets (`=>` is not a closer) up
+ * to the list's closing `>` and requiring the arrow's parameters, `(`, next.
  */
-const GENERIC_PARAMS_RE =
-  /^\s+extends\s+[^=>{}/]*?(?:<[^<>]*>[^=>{}/]*?)*>\s*\(|^\s*=(?![=>])/;
+function continuesTypeParams(code: string, from: number): boolean {
+  const rest = code.slice(from, from + 2000);
+  if (/^\s*=(?![=>])/.test(rest)) return true;
+  const ext = /^\s+extends\s/.exec(rest);
+  if (!ext) return false;
+  let depth = 0;
+  for (let i = ext[0].length; i < rest.length; i++) {
+    const c = rest[i]!;
+    if (c === "(" || c === "[" || c === "{" || c === "<") depth++;
+    else if (c === ")" || c === "]" || c === "}") depth--;
+    else if (c === ">") {
+      if (rest[i - 1] === "=") continue; // arrow `=>` inside a function type
+      if (depth > 0) depth--;
+      else return /^\s*\(/.test(rest.slice(i + 1));
+    }
+    if (depth < 0) return false;
+  }
+  return false;
+}
 
 /**
  * Candidate regex for JSX opening tags. The negative lookbehind (?<!\w)
@@ -251,7 +270,7 @@ function transformJsx(
     // `<T = Default>`): TSX requires `extends`/`,`/a default for a type
     // parameter list in expression position, none of which can follow a JSX
     // tag name.
-    if (GENERIC_PARAMS_RE.test(code.slice(offset + prefix.length + tagName.length))) {
+    if (continuesTypeParams(code, offset + prefix.length + tagName.length)) {
       continue;
     }
 
